@@ -1,6 +1,7 @@
-param(
+﻿param(
     [string]$IdeaHome = $env:IDEA_HOME,
     [string]$JavaHome,
+    [string]$PlatformPath,
     [switch]$Compatibility2024,
     [string[]]$Tasks = @('test', 'buildPlugin')
 )
@@ -21,8 +22,18 @@ Push-Location -LiteralPath $workspacePath
 try {
     $env:JAVA_HOME = $runtimePath
     $gradleArguments = @($Tasks)
-    if ($Compatibility2024) { $gradleArguments += '-Pcompatibility2024=true' }
-    elseif ($resolvedIdea) { $gradleArguments += "-PlocalPlatformPath=$resolvedIdea" }
+    # Every distribution now targets 2024.1 / Java 17. IdeaHome supplies the
+    # build JDK; a newer installed IDE must not raise the compilation baseline.
+    if ($PlatformPath) {
+        $resolvedPlatform = (Resolve-Path -LiteralPath $PlatformPath).Path
+        $gradleArguments += "-PlocalPlatformPath=$resolvedPlatform"
+    } elseif ($resolvedIdea) {
+        $productInfo = Get-Content -LiteralPath (Join-Path $resolvedIdea 'product-info.json') -Raw
+        if ($productInfo -match '"buildNumber"\s*:\s*"241\.') {
+            $gradleArguments += "-PlocalPlatformPath=$resolvedIdea"
+        }
+    }
+    $gradleArguments += "-Porg.gradle.java.installations.paths=$runtimePath"
     & $gradleCommand @gradleArguments '--console=plain'
     if ($LASTEXITCODE -ne 0) { throw "Gradle 执行失败，退出码 $LASTEXITCODE" }
 } finally {

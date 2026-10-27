@@ -26,23 +26,27 @@ public final class ReviewSettings implements PersistentStateComponent<ReviewSett
     @Override public void loadState(@NotNull Data state) { data=state; }
     public Data data() { return data; }
     public String key(String endpoint) {
-        ApplicationManager.getApplication().assertIsNonDispatchThread();
+        requireBackgroundThread();
         try {
             String value=PasswordSafe.getInstance().getPassword(attributes(endpoint));
             return value==null ? "" : value;
         }catch(RuntimeException failure){throw new IllegalStateException("无法读取 API Key，请检查 IDEA 的密码存储设置。");}
     }
     public void setKey(String endpoint,String key) {
-        ApplicationManager.getApplication().assertIsNonDispatchThread();
+        requireBackgroundThread();
         PasswordSafe.getInstance().setPassword(attributes(endpoint),key);
     }
     ApiKeyStorage.Status keyStatus(String endpoint){
-        ApplicationManager.getApplication().assertIsNonDispatchThread();
+        requireBackgroundThread();
         return ApiKeyStorage.inspect(keyStore(),endpoint);
     }
     ApiKeyStorage.Status saveKeyVerified(String endpoint,String key){
-        ApplicationManager.getApplication().assertIsNonDispatchThread();
+        requireBackgroundThread();
         return ApiKeyStorage.saveVerified(keyStore(),endpoint,key);
+    }
+    private static void requireBackgroundThread(){
+        if(ApplicationManager.getApplication().isDispatchThread())
+            throw new IllegalStateException("API Key 存储操作必须在后台线程执行。");
     }
     private ApiKeyStorage.Store keyStore(){return new ApiKeyStorage.Store(){
         public String read(String endpoint){return key(endpoint);}

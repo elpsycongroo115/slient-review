@@ -5,6 +5,7 @@ import com.intellij.diff.DiffManager;
 import com.intellij.diff.requests.SimpleDiffRequest;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.fileTypes.PlainTextFileType;
@@ -231,7 +232,7 @@ public final class ReviewToolWindowFactory implements ToolWindowFactory,DumbAwar
                 try{
                     if(disposed||project.isDisposed())return;
                     GitRepository.ChangedFile change=service.scopeFile(file.root(),repository.head(),file.path());
-                    SwingUtilities.invokeLater(()->{
+                    ApplicationManager.getApplication().invokeLater(()->{
                         if(disposed||project.isDisposed())return;
                         var factory=DiffContentFactory.getInstance();
                         DiffManager.getInstance().showDiff(project,new SimpleDiffRequest(rootName(file.root())+" / "+file.path()+"（审查提交快照，不含当前编辑）",factory.create(project,change.before(),PlainTextFileType.INSTANCE),factory.create(project,change.after(),PlainTextFileType.INSTANCE),"基线快照 "+shortRevision(repository.baseline())+" / "+change.beforePath(),"目标快照 "+shortRevision(repository.head())+" / "+change.path()));
@@ -247,16 +248,20 @@ public final class ReviewToolWindowFactory implements ToolWindowFactory,DumbAwar
                 try{
                     if(disposed||project.isDisposed())return;
                     Path root=Path.of(r.root()).toAbsolutePath().normalize();
-                    var registeredRoots=git4idea.repo.GitRepositoryManager.getInstance(project).getRepositories().stream().map(repo->Path.of(repo.getRoot().getPath())).toList();
-                    List<Path> projectDirectories=new ArrayList<>();
-                    if(project.getBasePath()!=null)projectDirectories.add(Path.of(project.getBasePath()));
-                    for(var contentRoot:ProjectRootManager.getInstance(project).getContentRoots())projectDirectories.add(Path.of(contentRoot.getPath()));
+                    var registeredRoots=ReadAction.compute(()->git4idea.repo.GitRepositoryManager.getInstance(project).getRepositories().stream()
+                        .map(repo->Path.of(repo.getRoot().getPath())).toList());
+                    List<Path> projectDirectories=ReadAction.compute(()->{
+                        List<Path> directories=new ArrayList<>();
+                        if(project.getBasePath()!=null)directories.add(Path.of(project.getBasePath()));
+                        for(var contentRoot:ProjectRootManager.getInstance(project).getContentRoots())directories.add(Path.of(contentRoot.getPath()));
+                        return List.copyOf(directories);
+                    });
                     if(!FindingNavigation.inProject(root,registeredRoots,projectDirectories))
                         throw new IllegalStateException("报告仓库不属于当前项目："+root+"。仅允许已登记的 Git 根，或项目根/内容根内自带 .git 的仓库；可选择查看提交快照。");
                     FindingNavigation.Target target=FindingNavigation.currentFile(root,f.filePath(),r.previousPaths());
                     var file=LocalFileSystem.getInstance().refreshAndFindFileByNioFile(target.path());
                     if(file==null)throw new IllegalStateException("IDE 未找到当前源码文件："+target.path()+"。可选择查看提交快照。");
-                    SwingUtilities.invokeLater(()->{
+                    ApplicationManager.getApplication().invokeLater(()->{
                         if(disposed||project.isDisposed())return;
                         try{
                             if(!file.isValid()||file.isDirectory())throw new IllegalStateException("源码文件已删除或失效，可选择查看提交快照。");
@@ -281,7 +286,7 @@ public final class ReviewToolWindowFactory implements ToolWindowFactory,DumbAwar
                     GitRepository git=new GitRepository(Path.of(r.root()),()->disposed||project.isDisposed());
                     String path=f.side().equals("before")&&r.previousPaths()!=null?r.previousPaths().getOrDefault(f.filePath(),f.filePath()):f.filePath();
                     String revision=f.side().equals("before")?r.base():r.target();String source=git.run("show",revision+":"+path);
-                    SwingUtilities.invokeLater(()->{if(disposed||project.isDisposed())return;
+                    ApplicationManager.getApplication().invokeLater(()->{if(disposed||project.isDisposed())return;
                         LightVirtualFile file=new LightVirtualFile(Path.of(path).getFileName()+"@"+shortRevision(revision)+" ["+rootName(r.root())+"]",PlainTextFileType.INSTANCE,source);file.setWritable(false);
                         new OpenFileDescriptor(project,file,f.startLine()-1,0).navigate(true);
                     });

@@ -1,11 +1,14 @@
 package dev.silentreview.idea;
 
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ModalityState;
+import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.options.*;
 import com.intellij.openapi.progress.*;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.LocalFileSystem;
+import com.intellij.openapi.vfs.VirtualFile;
 import dev.silentreview.core.AiClient;
 import dev.silentreview.core.Rules;
 import org.jetbrains.annotations.NotNull;
@@ -80,14 +83,16 @@ public final class ReviewConfigurable implements Configurable {
     }
     private void rulesAction(JButton button,boolean create,boolean open){
         JPanel shown=panel;String configured=path.getText();
+        ModalityState modality=ModalityState.current();
         button.setEnabled(false);setNote(ruleStatus,create?"正在创建示例规则…":"正在读取规则文件…");
         ApplicationManager.getApplication().executeOnPooledThread(()->{
-            String message;Path resolved=null;boolean canOpen=false;
+            String message;VirtualFile resolvedFile=null;
             try {
-                resolved=RuleTemplate.resolve(project.getBasePath(),configured);
+                Path resolved=RuleTemplate.resolve(ReadAction.compute(project::getBasePath),configured);
                 if(open){
                     if(!Files.isRegularFile(resolved))throw new IllegalArgumentException("规则文件不存在："+resolved);
-                    message="已打开规则文件："+resolved;canOpen=true;
+                    resolvedFile=LocalFileSystem.getInstance().refreshAndFindFileByNioFile(resolved);
+                    message="已打开规则文件："+resolved;
                 }else{
                     RuleTemplate.Created created=create?RuleTemplate.create(resolved):null;
                     Rules.Snapshot rules=Rules.load(resolved);
@@ -95,13 +100,12 @@ public final class ReviewConfigurable implements Configurable {
                         " · "+rules.name()+" · "+rules.rules().size()+" 条 · "+resolved;
                 }
             }catch(Exception failure){message=failure.getMessage()==null?"读取规则失败，请检查文件路径和 JSON 格式。":failure.getMessage();}
-            String result=message;Path file=resolved;boolean shouldOpen=canOpen;
-            SwingUtilities.invokeLater(()->{
+            String result=message;VirtualFile file=resolvedFile;
+            ApplicationManager.getApplication().invokeLater(()->{
                 if(panel!=shown||project.isDisposed())return;
                 setNote(ruleStatus,result);button.setEnabled(true);
-                if(shouldOpen){var virtualFile=LocalFileSystem.getInstance().refreshAndFindFileByNioFile(file);
-                    if(virtualFile!=null)FileEditorManager.getInstance(project).openFile(virtualFile,true);}
-            });
+                if(file!=null&&file.isValid())FileEditorManager.getInstance(project).openFile(file,true);
+            },modality);
         });
     }
     private void scheduleCredentialStatus(){

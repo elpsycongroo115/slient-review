@@ -17,7 +17,7 @@ IDEA 内的静默提交代码审查插件。按已有规则审查 Git 提交，�
 
 源码仓库不包含插件安装 ZIP。安装包通过 [Releases](https://github.com/naiyucandy/slient-review/releases) 单独发布；尚未发布时可按下方步骤自行构建。
 
-在 IDEA 的 **设置 → Plugins → 齿轮 → Install Plugin from Disk** 中选择构建或下载的插件 ZIP，按提示重启。
+当前版本为 **1.1.1**，安装范围从 **IDEA 2024.1（241）起**，不再限制到 2024.3。新旧 IDE 共用 `silent-review-1.1.1.zip`。在 IDEA 的 **设置 → Plugins → 齿轮 → Install Plugin from Disk** 中选择插件 ZIP，按提示重启。
 
 1. 打开包含一个或多个 Git 根的项目。
 2. 在 **设置 → 静默代码检测** 创建或选择规则并检查，填写 AI 接口、模型和 API Key，确认发送授权后应用。
@@ -44,19 +44,20 @@ macOS / Linux：
 bash gradlew test buildPlugin verifyPluginStructure
 ```
 
-默认 SDK 为 IDEA Community 2024.3。也可使用本机 IDEA 2024.2+ SDK 构建，传入真实安装路径：
+默认编译 SDK 固定为 IDEA Community 2024.1，输出 Java 17 字节码，避免使用新版 API 后让旧版无法运行。可用本机 IDEA 自带的 JDK 21 启动构建：
 
 ```powershell
 .\scripts\dev.ps1 -IdeaHome '<IDEA_HOME>'
 ```
 
-安装 ZIP 输出到 `build/distributions/`。IDE 兼容范围由所选 SDK 决定，以生成的插件描述和发布说明为准。
+安装 ZIP 输出到 `build/distributions/`。`-IdeaHome` 只提供构建 JDK；若需复用下载好的 2024.1 SDK，另传 `-PlatformPath`。旧参数 `-Compatibility2024` 保留接受，所有构建都输出统一的兼容包。
 
-当前 1.1.0 在 IDEA Ultimate 2024.2.4 SDK / JBR 21 环境通过构建与结构验证；147 项测试中 146 项通过，1 项符号链接用例因系统权限跳过。真实模型判断和日常 IDE 窗口需安装验收。
+自动化回归、插件结构和跨版本二进制检查的实际结果见 [兼容说明](docs/COMPATIBILITY.md)。真实模型判断和日常 IDE 窗口需安装验收。
 
 ## 文档
 
 - [安装与验收](docs/TRY-2024.md)
+- [IDE 兼容范围与验证](docs/COMPATIBILITY.md)
 - [通用关联上下文与规则声明](docs/RULE-CONTEXT.md)
 - [功能验收示例与小人状态](examples/functional-test/README.md)
 - [本轮需求范围](docs/SPEC-1.1.md)

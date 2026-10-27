@@ -72,13 +72,13 @@ public final class ReviewService implements Disposable {
             if(preparedRulesPath!=null&&!Objects.equals(preparedRulesPath,current.rulesPath))
                 prepared=new WorkspaceScope.Prepared(prepared.state().markStale(),prepared.frozen());
         }
-        SwingUtilities.invokeLater(this::startFish);publish();
+        ApplicationManager.getApplication().invokeLater(this::startFish,ModalityState.current());publish();
     }
     public void showReports(){
-        SwingUtilities.invokeLater(()->{if(project.isDisposed())return;ToolWindow w=ToolWindowManager.getInstance(project).getToolWindow("Silent Review");if(w!=null)w.activate(null);});
+        ApplicationManager.getApplication().invokeLater(()->{if(project.isDisposed())return;ToolWindow w=ToolWindowManager.getInstance(project).getToolWindow("Silent Review");if(w!=null)w.activate(null);});
     }
     public void toggleReports(){
-        SwingUtilities.invokeLater(()->{
+        ApplicationManager.getApplication().invokeLater(()->{
             if(disposed||project.isDisposed())return;
             ToolWindow window=ToolWindowManager.getInstance(project).getToolWindow("Silent Review");
             if(window!=null){if(window.isVisible())window.hide(null);else window.activate(null);}
@@ -87,9 +87,10 @@ public final class ReviewService implements Disposable {
     /** Menu and overlay review actions expose the file selection before starting any AI request. */
     public void manual(String baseline){showReports();prepareScope(baseline);}
     private Config config(){ReviewSettings.Data s=ReviewSettings.get(project).data();return new Config(s.rulesPath,s.endpoint,s.model,s.allowExternal);}
-    private Path projectBase(){return project.getBasePath()==null?null:Path.of(project.getBasePath());}
+    private Path projectBase(){return ReadAction.compute(()->project.getBasePath()==null?null:Path.of(project.getBasePath()));}
     private GitRoots.Discovery repositoryRoots(){
-        ApplicationManager.getApplication().assertIsNonDispatchThread();
+        if(ApplicationManager.getApplication().isDispatchThread())
+            throw new IllegalStateException("Git 仓库发现必须在后台线程执行。");
         List<Path> registered=ReadAction.compute(()->git4idea.repo.GitRepositoryManager.getInstance(project).getRepositories().stream()
             .map(r->Path.of(r.getRoot().getPath())).sorted().toList());
         List<Path> hints=new ArrayList<>(ReadAction.compute(()->Arrays.stream(ProjectRootManager.getInstance(project).getContentRoots())
