@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.0",
+  "ruleSetId": "editable-starter",
+  "name": "可编辑的入门示例规则",
+  "version": "1.0.0",
+  "description": "这是帮助首次试用的示例，请按项目规范修改规则、适用路径和例外，再用于正式审查。规则不会自动修改代码。",
+  "rules": [
+    {
+      "id": "JAVA-001",
+      "title": "Java 代码避免直接使用 System.out.println",
+      "group": "java",
+      "severity": "warning",
+      "appliesTo": {
+        "include": ["**/*.java"],
+        "exclude": ["**/build/**", "**/target/**", "**/generated/**"],
+        "languages": ["java"]
+      },
+      "requirement": "避免实际调用 java.lang.System.out.println，请使用项目约定的日志组件。注释、字符串中出现方法名称不属于违规。此规则为可编辑示例，请按项目需要调整。",
+      "exceptions": [],
+      "source": {"document": "可编辑示例（请替换为项目规范）", "section": "日志约定", "excerpt": "Java 代码使用项目日志组件，不直接调用 System.out.println。"}
+    },
+    {
+      "id": "JS-001",
+      "title": "JavaScript 代码避免直接调用全局 eval",
+      "group": "frontend",
+      "severity": "error",
+      "appliesTo": {
+        "include": ["**/*.js", "**/*.jsx", "**/*.mjs", "**/*.cjs"],
+        "exclude": ["**/node_modules/**", "**/vendor/**", "**/dist/**", "**/build/**"],
+        "languages": ["javascript"]
+      },
+      "requirement": "禁止直接调用全局 eval。注释、字符串和普通对象的同名方法不属于全局 eval 调用。此规则为可编辑示例，请按项目需要调整。",
+      "exceptions": [],
+      "source": {"document": "可编辑示例（请替换为项目规范）", "section": "动态执行限制", "excerpt": "JavaScript 业务代码不直接调用全局 eval。"}
+    }
+  ]
+}

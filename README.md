@@ -1,2 +1,71 @@
-# slient-review
-这是一个git提交静默检查工具-idea插件版
+# Silent Review
+
+IDEA 内的静默提交代码审查插件。按已有规则审查 Git 提交，支持多仓库、通用关联文件上下文和可追溯报告处理，附带像素女仆状态提示。
+
+![动作预览](docs/artwork/preview.gif)
+
+## 功能
+
+- 多 Git 根项目：逐仓库准备范围，单个仓库失败不阻断其他仓库。
+- 文件级纳入/排除与冻结提交 Diff，报告保留仓库、提交和审查范围。
+- 通用关联上下文：按规则引用或 `contextFiles` 声明读取同一提交中的配套文件，不固化业务规则。
+- 报告确认、采纳、关闭及操作历史；问题默认跳转项目真实源码。
+- API Key 安全存储与配置状态提示，可主动创建可编辑的默认规则模板。
+- 小人点击展开/收起面板，支持四边吸附，五组像素动画共用呼吸节奏。
+
+## 安装与使用
+
+源码仓库不包含插件安装 ZIP。安装包通过 [Releases](https://github.com/naiyucandy/slient-review/releases) 单独发布；尚未发布时可按下方步骤自行构建。
+
+在 IDEA 的 **设置 → Plugins → 齿轮 → Install Plugin from Disk** 中选择构建或下载的插件 ZIP，按提示重启。
+
+1. 打开包含一个或多个 Git 根的项目。
+2. 在 **设置 → 静默代码检测** 创建或选择规则并检查，填写 AI 接口、模型和 API Key，确认发送授权后应用。
+3. 在 **Silent Review → 审查范围** 准备当前提交，确认纳入文件后开始审查。
+4. 在 **报告与处理** 查看结果、打开项目源码、记录处理状态或导出。
+
+审查对象是已提交快照。未提交的代码不会被悄悄混入，原生 IDEA diff 的 included 选择也不会被插件修改。
+
+`examples/rules/rules.example.json` 是通用 Java 控制台输出 / JavaScript eval 示例，不代表完整业务规范。已有规则不会被模板覆盖。
+
+## 构建
+
+需要 JDK 21。工程自带 Gradle Wrapper，首次构建会下载 Gradle、IntelliJ SDK 和依赖。
+
+Windows：
+
+```powershell
+.\gradlew.bat test buildPlugin verifyPluginStructure
+```
+
+macOS / Linux：
+
+```bash
+bash gradlew test buildPlugin verifyPluginStructure
+```
+
+默认 SDK 为 IDEA Community 2024.3。也可使用本机 IDEA 2024.2+ SDK 构建，传入真实安装路径：
+
+```powershell
+.\scripts\dev.ps1 -IdeaHome '<IDEA_HOME>'
+```
+
+安装 ZIP 输出到 `build/distributions/`。IDE 兼容范围由所选 SDK 决定，以生成的插件描述和发布说明为准。
+
+当前 1.1.0 在 IDEA Ultimate 2024.2.4 SDK / JBR 21 环境通过构建与结构验证；147 项测试中 146 项通过，1 项符号链接用例因系统权限跳过。真实模型判断和日常 IDE 窗口需安装验收。
+
+## 文档
+
+- [安装与验收](docs/TRY-2024.md)
+- [通用关联上下文与规则声明](docs/RULE-CONTEXT.md)
+- [功能验收示例与小人状态](examples/functional-test/README.md)
+- [本轮需求范围](docs/SPEC-1.1.md)
+- [像素素材记录](docs/ARTWORK-PIXEL.md)
+
+## 数据与边界
+
+API Key 通过 IDEA PasswordSafe 保存，不写入项目 XML。代码和规则仅在用户配置并授权后发送到所选 AI 接口。
+
+插件不修改源码、不阻塞提交、不自动 fetch/pull/push；自动检查仅接入 IDEA 提交成功回调，不监听终端提交。读取使用严格 UTF-8，大小、批次和关联上下文有上限；失败与未完成范围明确显示。模型判断可能存在误报或漏报。
+
+仓库保留 [MIT LICENSE](LICENSE)。原始素材相关许可与来源说明见 [像素素材记录](docs/ARTWORK-PIXEL.md)。本项目不是 DeepSeek 或 JetBrains 官方产品。

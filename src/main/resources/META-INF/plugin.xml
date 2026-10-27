@@ -1,0 +1,27 @@
+<idea-plugin>
+    <id>dev.silentreview.idea</id>
+    <name>Silent Review</name>
+    <vendor>Silent Review Contributors</vendor>
+    <description><![CDATA[
+        Reviews committed changes against an existing project rule set using your configured AI endpoint.
+        Supports multiple Git repositories, explicit committed-file review scopes, and traceable report decisions.
+        Includes a pixel whale companion and a starter rule template. Code and rules are sent only after you configure and enable review.
+        Does not modify source code or block commits.
+    ]]></description>
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.vcs</depends>
+    <depends>Git4Idea</depends>
+    <extensions defaultExtensionNs="com.intellij">
+        <projectService serviceImplementation="dev.silentreview.idea.ReviewSettings"/>
+        <projectService serviceImplementation="dev.silentreview.idea.ReviewService"/>
+        <projectConfigurable id="dev.silentreview.settings" displayName="静默代码检测" instance="dev.silentreview.idea.ReviewConfigurable"/>
+        <toolWindow id="Silent Review" anchor="right" factoryClass="dev.silentreview.idea.ReviewToolWindowFactory"/>
+        <checkinHandlerFactory implementation="dev.silentreview.idea.CommitReviewHandlerFactory"/>
+        <postStartupActivity implementation="dev.silentreview.idea.ReviewStartupActivity"/>
+    </extensions>
+    <actions>
+        <action id="SilentReview.CheckCommit" class="dev.silentreview.idea.ReviewCommitAction" text="静默检测当前提交" description="使用已有规则集审查当前提交">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+    </actions>
+</idea-plugin>
